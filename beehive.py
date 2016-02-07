@@ -5,7 +5,7 @@ connected by one switch, and run a beehive cluster on them.
 Put this script in your ~/mininet folder (otherwise it won't be able
 to import from the mininet Python API). Run it as follows:
 
-sudo -E python beehive.py [numer-of-hosts] [path/to/application.go]
+sudo -E python beehive.py [number-of-hosts] [path/to/application.go]
 
 THE -E FLAG IS IMPORTANT. If it is not set, your environment variables
 will not be preserved while running mininet, so the hosts won't be able
