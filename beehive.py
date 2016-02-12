@@ -1,11 +1,16 @@
+#!/usr/bin/python
 """
 A script to create a mininet topology with a given number of hosts
 connected by one switch, and run a beehive cluster on them.
 
-Put this script in your ~/mininet folder (otherwise it won't be able
-to import from the mininet Python API). Run it as follows:
+Put this script in your ~/mininet folder or give this sciprt the path
+to mininet folder(otherwise it won't be able to import from the
+mininet Python API). Run it as follows:
 
-sudo -E python beehive.py [number-of-hosts] [path/to/application.go]
+sudo -E python beehive.py
+                        [number-of-hosts]
+                        [path/to/application.go]
+                        [path/to/mininet/folder]
 
 THE -E FLAG IS IMPORTANT. If it is not set, your environment variables
 will not be preserved while running mininet, so the hosts won't be able
@@ -19,12 +24,14 @@ You can edit GO_RUN_ARGS to include any arguments you want to pass to
 your application EXCEPT -addr, -paddrs, and -statepath.
 """
 
+import os
+import sys
+
 from mininet.net import Mininet
 from mininet.topo import Topo
 from mininet.log import setLogLevel
 from mininet.cli import CLI
 
-import sys
 from time import sleep
 
 DEFAULT_PORT = 7677
@@ -86,10 +93,14 @@ def test(num_hosts, application_path):
     net.stop()
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print("Usage: {} [number-of-hosts] [path/to/application.go]\n".format(
-            sys.argv[0]))
+    if len(sys.argv) < 3:
+        print("Usage: beehive.py "
+              + "[number-of-hosts]"
+              + "[path/to/application.go]"
+              + "[path/to/mininet/folder]\n")
         sys.exit()
+    if len(sys.argv) == 4:
+        os.chdir(sys.argv[3])
 
     try:
         num_hosts = int(sys.argv[1])
