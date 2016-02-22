@@ -179,7 +179,6 @@ func initHTTPHandler(beehiveApp beehive.App) {
 
 func main() {
     logger.InitDefault()
-    fmt.Println("%+v", logger.Trace)
     logger.Trace.Println("[main] Init beehive app")
     // Create the application and
     beehiveApp := beehive.NewApp("beehive-app", beehive.Persistent(0))

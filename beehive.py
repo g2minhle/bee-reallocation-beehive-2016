@@ -27,69 +27,91 @@ your application EXCEPT -addr, -paddrs, and -statepath.
 import os
 import sys
 
+from time import sleep
+
+from mininet.cli import CLI
+from mininet.node import CPULimitedHost
 from mininet.net import Mininet
 from mininet.topo import Topo
 from mininet.log import setLogLevel
-from mininet.cli import CLI
 
-from time import sleep
-
+CONTROLLER_HOST_NAME = "hcon"
 DEFAULT_PORT = 7677
-GO_RUN_ARGS = ""
-
+GO_RUN_ARGS = "-instrument"
 
 class TestTopo(Topo):
     """n hosts connected by a single switch."""
 
     def build(self, n=2):
+
+        # There will be n beehive hosts with 1 controller host
+        # CPU limit of a host
+        cpu_imit = .5 / (n + 1)
         switch = self.addSwitch("s1")
 
-        for h in range(1, n + 1):
-            host = self.addHost("h{}".format(h))
+        # Rhe controller host will get 50% CPU
+        host = self.addHost(CONTROLLER_HOST_NAME, cpu=.5 )
+        self.addLink(host, switch)
+
+        for h in range(0, n):
+            host = self.addHost("h{}".format(h), cpu=cpu_imit)
             self.addLink(host, switch)
 
+def waitForHive(host_index):
+    print("Waiting hive {} hive to start ...".format(host_index))
+    path_to_hive_output = "beehiveOutput/{}.out".format(host_index)
+    # Hive is not started when there is no output file
+    # or output file has no content
+    while (os.path.isfile(path_to_hive_output) == False or os.stat(path_to_hive_output).st_size == 0):
+        sleep(1)
+    print("Hive {} started".format(host_index))
 
-def test(num_hosts, application_path):
+def runExperiment(num_hosts, application_path):
     topo = TestTopo(n=num_hosts)
-    net = Mininet(topo)
-    net.start()
-
-    h1 = net.get("h1")
-    host_1_address = "{}:{}".format(h1.IP(), DEFAULT_PORT)
-
+    net = Mininet(topo=topo, host=CPULimitedHost)
     cmd_arg_string = "{}{}".format(
         " " if GO_RUN_ARGS else "",
         GO_RUN_ARGS)
+    net.start()
+    h0 = net.get("h0")
+    host_0_address = "{}:{}".format(h0.IP(), DEFAULT_PORT)
 
     # Start the initial end host that all peers will connect to
-    command = "go run {} -addr {} -statepath /tmp/beehive{} &".format(
+    command = "go run {} -addr {} -statepath /tmp/beehive{} > beehiveOutput/0.out &".format(
         application_path,
-        host_1_address,
+        host_0_address,
         cmd_arg_string)
-    print("Executing {} on host 1...".format(command))
-    h1.cmd(command)
-
-    # Wait a bit for the application to start up
-    print("Waiting for the application to start up...")
-    sleep(5)
+    print("Executing {} on host 0...".format(command))
+    h0.cmd("export PATH=$PATH:/usr/local/go/bin")
+    h0.cmd("export GOPATH=$HOME/work")
+    h0.cmd(command)
+    waitForHive(0)
 
     # Now start all the peers
-    for i in range(2, num_hosts + 1):
+    for i in range(1, num_hosts):
         host = net.get("h{}".format(i))
-        host_address = "{}:{}".format(host.IP(), DEFAULT_PORT + i)
-        command = ("go run {} -addr {} -paddrs {}"
-                   " -statepath /tmp/beehive{} {} &").format(
+        host_address = "{}:{}".format(host.IP(), DEFAULT_PORT)
+        command = ("go run {} -addr {} -paddrs {} -statepath /tmp/beehive{}{} > beehiveOutput/{}.out&").format(
             application_path,
             host_address,
-            host_1_address,
+            host_0_address,
             i,
-            cmd_arg_string)
+            cmd_arg_string,
+            i)
         print("Executing {} on host {}...".format(command, i))
+        host.cmd("export PATH=$PATH:/usr/local/go/bin")
+        host.cmd("export GOPATH=$HOME/work")
         host.cmd(command)
 
-    print("Starting CLI, press CTRL-D or type 'exit' to exit.")
-    CLI(net)
+    # Wait for all hive to start
+    for i in range(1, num_hosts):
+        waitForHive(i)
 
+    print("All hive started")
+    # print("Starting CLI, press CTRL-D or type 'exit' to exit.")
+    # CLI(net)
+    hcon = net.get("hcon")
+    host.cmd("python ./metric.py > experimentResult")
     net.stop()
 
 if __name__ == "__main__":
@@ -105,11 +127,8 @@ if __name__ == "__main__":
     try:
         num_hosts = int(sys.argv[1])
     except TypeError:
-        num_hosts = -1
-
-    if num_hosts < 1:
         print("{} is not a valid number of hosts\n".format(sys.argv[1]))
-        sys.exit()
+        sys.exit(1)
 
     setLogLevel("info")
-    test(num_hosts, sys.argv[2])
+    runExperiment(num_hosts, sys.argv[2])
