@@ -9,28 +9,38 @@ FIB_NUMBER = 20
 INPUT_FILE_NAME = 'test.txt'
 
 class HiveInfo:
-    def __init__(self, ip, port, message_generation_pattern):
+    def __init__(self, id, ip, port, message_generation_pattern):
+        self.id =  id
         self.ip =  ip
         self.port =  port
         self.message_generation_pattern = message_generation_pattern
 
+class ExperimentRecord():
+    def __init__(self, hive_id, bee_id, start_time, end_time):
+        self.hive_id = hive_id
+        self.bee_id = bee_id
+        self.start_time = start_time
+        self.end_time = end_time
 
 class ClientBenchmarker():
-
     def __init__(self):
         self.benchmarkerLock = threading.Lock()
-        self.start_times = []
-        self.end_times = []
+        self.records = []
 
-    def record_time(self, start_time, end_time):
+    def record_time(self, hive_id, bee_id, start_time, end_time):
         self.benchmarkerLock.acquire()
-        self.start_times.append(start_time)
-        self.end_times.append(end_time)
+        record = ExperimentRecord(hive_id, bee_id, start_time, end_time)
+        self.records.append(record)
         self.benchmarkerLock.release()
 
     def outputMetric(self):
-        for i in range(0, len(self.start_times)):
-            print self.end_times[i] - self.start_times[i]
+        f = open('experimentResult', 'w')
+        #f.write(','.join['FromHive', 'DestinationBee', 'StartTime', 'Duration'])
+        for record in self.records:
+            output = [str(record.hive_id), str(record.bee_id), str(record.end_time - record.start_time)]
+            f.write(','.join(output))
+            f.write('\n')
+        f.close()
 
 
 class MessageSender(threading.Thread):
@@ -52,21 +62,22 @@ class MessageSender(threading.Thread):
         response = conn.getresponse()
         end_time = time.time()
         total_time = end_time - start_time
-        self.benchmarker.record_time(start_time, end_time)
+        self.benchmarker.record_time(self.hive_info.id,
+                                        self.destination_bee,
+                                        start_time,
+                                        end_time)
 
     def send(self):
         self.start()
 
 
 class TrafficGenerator():
-
     def __init__(self, file_name, cycle_count, time_interval, benchmarker):
         self.senders = []
         self.cycle_count = cycle_count
         self.time_interval = time_interval
         self.benchmarker = benchmarker
         self._read_input_file(file_name)
-
 
     def _read_input_file(self, file_name):
         f = open(file_name, 'r')
@@ -80,7 +91,7 @@ class TrafficGenerator():
             port = int(f.readline())
             for current_bee in range(0, self.bee_count):
                 message_generation_pattern.append(float(f.readline()))
-            self.hive_infos.append(HiveInfo(ip, port, message_generation_pattern))
+            self.hive_infos.append(HiveInfo(current_hive, ip, port, message_generation_pattern))
             f.readline()
 
     def _sendRequestPerHive(self, current_hive):

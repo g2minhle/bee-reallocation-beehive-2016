@@ -50,7 +50,8 @@ class TestTopo(Topo):
         switch = self.addSwitch("s1")
 
         # Rhe controller host will get 50% CPU
-        host = self.addHost(CONTROLLER_HOST_NAME, cpu=.5 )
+        #host = self.addHost(CONTROLLER_HOST_NAME, cpu=.5 )
+        host = self.addHost(CONTROLLER_HOST_NAME )
         self.addLink(host, switch)
 
         for h in range(0, n):
@@ -62,9 +63,39 @@ def waitForHive(host_index):
     path_to_hive_output = "beehiveOutput/{}.out".format(host_index)
     # Hive is not started when there is no output file
     # or output file has no content
-    while (os.path.isfile(path_to_hive_output) == False or os.stat(path_to_hive_output).st_size == 0):
+    while (os.path.isfile(path_to_hive_output) == False \
+            or os.stat(path_to_hive_output).st_size == 0):
         sleep(1)
     print("Hive {} started".format(host_index))
+
+def getHostFullAddress(host, port = None):
+    if port == None:
+        port = DEFAULT_PORT
+    return "{}:{}".format(host.IP(), port)
+
+def getRunCommand(host, id, application_path, peer_list = None):
+    go_run_app = "go run %s" % (application_path)
+    host_address = "-addr %s" % (getHostFullAddress(host))
+    peer_addresses = ""
+    if(peer_list != None):
+        peer_address_list = []
+        for peer in peer_list:
+            peer_address_list.append(getHostFullAddress(peer))
+        peer_addresses = "-paddrs %s" % (' '.join(peer_address_list))
+    state_path = "-statepath /tmp/beehive{}".format(id)
+    stdout_output = ">beehiveOutput/%s.out" % (id)
+    stderror_output = "2>beehiveOutput/%s.error.out" % (id)
+    command_parts = [go_run_app,
+                        host_address,
+                        peer_addresses,
+                        state_path,
+                        GO_RUN_ARGS,
+                        stdout_output,
+                        stderror_output,
+                        '&']
+    command = ' '.join(command_parts)
+
+    return command
 
 def runExperiment(num_hosts, application_path):
     topo = TestTopo(n=num_hosts)
@@ -74,33 +105,23 @@ def runExperiment(num_hosts, application_path):
         GO_RUN_ARGS)
     net.start()
     h0 = net.get("h0")
-    host_0_address = "{}:{}".format(h0.IP(), DEFAULT_PORT)
 
     # Start the initial end host that all peers will connect to
-    command = "go run {} -addr {} -statepath /tmp/beehive{} > beehiveOutput/0.out &".format(
-        application_path,
-        host_0_address,
-        cmd_arg_string)
-    print("Executing {} on host 0...".format(command))
+    command = getRunCommand(h0, 0, application_path)
     h0.cmd("export PATH=$PATH:/usr/local/go/bin")
     h0.cmd("export GOPATH=$HOME/work")
+    print("Executing {} on host {}...".format(command, 0))
     h0.cmd(command)
     waitForHive(0)
 
     # Now start all the peers
     for i in range(1, num_hosts):
         host = net.get("h{}".format(i))
-        host_address = "{}:{}".format(host.IP(), DEFAULT_PORT)
-        command = ("go run {} -addr {} -paddrs {} -statepath /tmp/beehive{}{} > beehiveOutput/{}.out&").format(
-            application_path,
-            host_address,
-            host_0_address,
-            i,
-            cmd_arg_string,
-            i)
-        print("Executing {} on host {}...".format(command, i))
+        command = getRunCommand(host, i, application_path, [h0])
+
         host.cmd("export PATH=$PATH:/usr/local/go/bin")
         host.cmd("export GOPATH=$HOME/work")
+        print("Executing {} on host {}...".format(command, i))
         host.cmd(command)
 
     # Wait for all hive to start
@@ -111,18 +132,15 @@ def runExperiment(num_hosts, application_path):
     # print("Starting CLI, press CTRL-D or type 'exit' to exit.")
     # CLI(net)
     hcon = net.get("hcon")
-    host.cmd("python ./metric.py > experimentResult")
+    hcon.cmd("python ./metric.py >> experimentStdout 2>> experimentStderr")
     net.stop()
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
         print("Usage: beehive.py "
               + "[number-of-hosts]"
-              + "[path/to/application.go]"
-              + "[path/to/mininet/folder]\n")
+              + "[path/to/application.go]")
         sys.exit()
-    if len(sys.argv) == 4:
-        os.chdir(sys.argv[3])
 
     try:
         num_hosts = int(sys.argv[1])
