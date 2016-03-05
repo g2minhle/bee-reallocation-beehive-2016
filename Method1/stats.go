@@ -342,21 +342,40 @@ func (o optimizer) Rcv(msg Msg, ctx RcvContext) error {
 
 	// For now, migrate a random bee to a random free hive
 	for _, hid := range full_hives {
-		bid := ctx.Hive().(*hive).registry.beesOfHive(hid)[0].ID
-		glog.Infof("%v initiates migration of bee %v to hive %v", ctx, bid,
-			free_hives[0])
-		os := stats[bid]
-		ctx.SendToBee(cmdMigrate{Bee: bid, To: free_hives[0]}, os.Collector)
-		os.Migrated = true
-		k := formatBeeID(bid)
-		dict.Put(k, os)
+		bees_in_hive := ctx.Hive().(*hive).registry.beesOfHive(hid)
+		for _, bee := range bees_in_hive {
+			bi, ok := infos[b]
 
-		// Remove this free hive from the list of free hives
-		free_hives = free_hives[1:]
+			// Don't migrate certain bees
+			if !ok || bi.Detached {
+			continue
+			}
+			if app, ok := ctx.Hive().(*hive).app(bi.App); ok && app.sticky() {
+				continue
+			}
 
-		// No free hives left; oh well
-		if len(free_hives) == 0 {
-			return nil
+			os := stats[bid]
+			if os.Migrated {
+				continue
+			}
+
+			glog.Infof("%v initiates migration of bee %v to hive %v",
+				ctx, bid, free_hives[0])
+			ctx.SendToBee(cmdMigrate{Bee: bid, To: free_hives[0]}, os.Collector)
+			os.Migrated = true
+			k := formatBeeID(bid)
+			dict.Put(k, os)
+
+			// Remove this free hive from the list of free hives
+			free_hives = free_hives[1:]
+
+			// No free hives left; oh well
+			if len(free_hives) == 0 {
+				return nil
+			}
+
+			// Migration done for this hive
+			break
 		}
 	}
 
