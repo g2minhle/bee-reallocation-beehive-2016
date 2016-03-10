@@ -13,11 +13,11 @@ mkdir beehiveOutput
 
 # Copy all Beehive changes to beehive folder
 cd ./$3
-cp `ls` ../../work/src/github.com/kandoo/beehive/
+cp `ls` ${GOPATH}/src/github.com/kandoo/beehive/
 cd ../
 
 # Run the main script
-sudo -E ./beehive.py $1 $2 $3
+sudo -E python ./beehive.py $1 $2 $3
 
 # Store experiment result
 sed "s/$/,$3/" experimentResult >> experimentResult.db

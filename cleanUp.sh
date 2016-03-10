@@ -10,6 +10,6 @@ sudo rm -rf /tmp/beehive*
 sudo rm -rf beehiveOutput
 
 # Clean up Beehive folder
-cd ../work/src/github.com/kandoo/beehive/
+cd ${GOPATH}/src/github.com/kandoo/beehive/
 git fetch --all
 git reset --hard origin/master
