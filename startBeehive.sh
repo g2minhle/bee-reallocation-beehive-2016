@@ -5,6 +5,12 @@
 # $2 : Path to Beehive go application
 # $3 : Method
 
+if [ $# -ne 3 ]
+    then
+        echo "Not enough arguments given"
+        exit 1
+fi
+
 # Make sure all temp folders are clean
 ./cleanUp.sh
 
