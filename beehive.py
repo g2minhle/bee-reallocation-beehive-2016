@@ -93,7 +93,7 @@ def get_full_host_address(host, port=None):
     return "{}:{}".format(host.IP(), port)
 
 
-def getRunCommand(host, id, application_path, peer_list=None):
+def get_run_command(host, id, application_path, peer_list=None):
     """
     Return a command string that, when executed by host, starts up the
     Beehive application located at application_path.
@@ -126,13 +126,19 @@ def getRunCommand(host, id, application_path, peer_list=None):
 
 
 def run_experiment(num_hosts, application_path):
+    """
+    Construct a mininet topology of num_hosts hosts running the Beehive
+    application at application_path, run some benchmarking tests on it, and
+    save the results to an output file.
+    """
+
     topo = TestTopo(n=num_hosts)
     net = Mininet(topo=topo, host=CPULimitedHost)
     net.start()
     h0 = net.get("h0")
 
     # Start the initial end host that all peers will connect to
-    command = getRunCommand(h0, 0, application_path)
+    command = get_run_command(h0, 0, application_path)
     print("Executing {} on host {}...".format(command, 0))
     h0.cmd(command)
     wait_for_hive(0)
@@ -140,7 +146,7 @@ def run_experiment(num_hosts, application_path):
     # Now start all the peers
     for i in range(1, num_hosts):
         host = net.get("h{}".format(i))
-        command = getRunCommand(host, i, application_path, [h0])
+        command = get_run_command(host, i, application_path, [h0])
         print("Executing {} on host {}...".format(command, i))
         host.cmd(command)
 
