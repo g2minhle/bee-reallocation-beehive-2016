@@ -66,7 +66,7 @@ class TestTopo(Topo):
 def wait_for_hive(hive_index):
     """Busy-wait for the application on hive number hive_index to start up."""
 
-    print("Waiting for {} hive to start ...".format(hive_index))
+    print("Waiting for hive {} to start ...".format(hive_index))
 
     path_to_hive_output = "beehiveOutput/{}.out".format(hive_index)
 
@@ -151,8 +151,7 @@ def run_experiment(num_hosts, application_path):
         host.cmd(command)
 
     # Wait for all peers to start
-    for i in range(1, num_hosts):
-        wait_for_hive(i)
+    sleep(5)
 
     print("All hives started")
 
