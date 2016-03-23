@@ -151,7 +151,8 @@ def run_experiment(num_hosts, application_path):
         host.cmd(command)
 
     # Wait for all peers to start
-    sleep(5)
+    for i in range(1, num_hosts):
+        wait_for_hive(i)
 
     print("All hives started")
 
