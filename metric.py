@@ -16,28 +16,30 @@ class HiveInfo:
         self.message_generation_pattern = message_generation_pattern
 
 class ExperimentRecord():
-    def __init__(self, hive_id, bee_id, start_time, end_time):
+    def __init__(self, hive_id, bee_id, start_time, end_time, count):
         self.hive_id = hive_id
         self.bee_id = bee_id
         self.start_time = start_time
         self.end_time = end_time
+        self.count = count
 
 class ClientBenchmarker():
     def __init__(self):
         self.benchmarkerLock = threading.Lock()
         self.records = []
 
-    def record_time(self, hive_id, bee_id, start_time, end_time):
+    def record_time(self, hive_id, bee_id, start_time, end_time, count):
         self.benchmarkerLock.acquire()
-        record = ExperimentRecord(hive_id, bee_id, start_time, end_time)
+        record = ExperimentRecord(hive_id, bee_id, start_time, end_time, count)
         self.records.append(record)
         self.benchmarkerLock.release()
 
     def outputMetric(self):
-        f = open('experimentResult', 'w')
+        f = open('experimentResult.csv', 'w')
         #f.write(','.join['FromHive', 'DestinationBee', 'StartTime', 'Duration'])
-        for record in self.records:
-            output = [str(record.hive_id), str(record.bee_id), str(record.end_time - record.start_time)]
+        for i in range(0,len(self.records)):
+            record = self.records[i]
+            output = [str(record.start_time), str(record.hive_id), str(record.bee_id), str(record.end_time - record.start_time), str(record.count)]
             f.write(','.join(output))
             f.write('\n')
         f.close()
@@ -65,7 +67,8 @@ class MessageSender(threading.Thread):
         self.benchmarker.record_time(self.hive_info.id,
                                         self.destination_bee,
                                         start_time,
-                                        end_time)
+                                        end_time,
+                                        response.read())
 
     def send(self):
         self.start()
@@ -131,7 +134,7 @@ if __name__ == "__main__":
     print "Init experiment."
     seed()
     clientBenchmarker = ClientBenchmarker()
-    trafficGenerator = TrafficGenerator(INPUT_FILE_NAME, 4, 0.01, clientBenchmarker)
+    trafficGenerator = TrafficGenerator(INPUT_FILE_NAME, 100, 0.01, clientBenchmarker)
     trafficGenerator.runExperiment()
     trafficGenerator.waitForSendersToFinish()
     clientBenchmarker.outputMetric()

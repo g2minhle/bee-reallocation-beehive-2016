@@ -160,9 +160,7 @@ func (httpReceiver *HTTPReceiver) ServeHTTP(
         return
     }
 
-    fmt.Fprintf(responseWriter, "Message sent to bee (%s) for (%d) times \n",
-                 destinationBee,
-                 beeRespond.(int))
+    fmt.Fprintf(responseWriter, "%d", beeRespond.(int))
     logger.Trace.Println("[HTTPReceiver] Done sending message to bee")
 }
 
