@@ -344,7 +344,8 @@ func (o optimizer) Rcv(msg Msg, ctx RcvContext) error {
 	for _, hid := range full_hives {
 		bees_in_hive := ctx.Hive().(*hive).registry.beesOfHive(hid)
 		for _, bee := range bees_in_hive {
-			bi, ok := infos[b]
+			bid := bee.ID
+			bi, ok := infos[bid]
 
 			// Don't migrate certain bees
 			if !ok || bi.Detached {
