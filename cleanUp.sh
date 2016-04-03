@@ -3,11 +3,11 @@
 # Clean up mininet
 sudo mn -c
 
-# Clean up temp folders 
-sudo rm -rf /tmp/beehive*
+# Clean up temp folders
+sudo rm -rf /tmp/*
 
 # Clean up output folder
-sudo rm -rf beehiveOutput
+sudo rm -rf ./beehiveOutput
 
 # Clean up Beehive folder
 cd ${GOPATH}/src/github.com/kandoo/beehive/
