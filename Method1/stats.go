@@ -303,6 +303,12 @@ func (o optimizer) Rcv(msg Msg, ctx RcvContext) error {
 	// bees_per_hive is a map of hive ID to number of bees
 	bees_per_hive := make(map[uint64]uint64)
 
+	// Initialize an entry for each hive
+	all_hives := ctx.Hive().(*hive).registry.hives()
+	for hi := range all_hives {
+		bees_per_hive[hi.ID] = 0
+	}
+
 	for b, _ := range stats {
 		bi, ok := infos[b]
 		if !ok {
