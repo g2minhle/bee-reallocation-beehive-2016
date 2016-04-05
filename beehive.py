@@ -69,7 +69,7 @@ def wait_for_hive(hive_index):
 
     print("Waiting for hive {} to start ...".format(hive_index))
 
-    path_to_hive_output = "beehiveOutput/{}.out".format(hive_index)
+    path_to_hive_output = "out/{}.out".format(hive_index)
 
     # Hive is not started when there is no output file
     # or output file has no content
@@ -111,8 +111,8 @@ def get_run_command(host, id, application_path, peer_list=None):
             " ".join(get_full_host_address(peer) for peer in peer_list))
 
     state_path = "-statepath /tmp/beehive{}".format(id)
-    stdout_output = "> beehiveOutput/{}.out".format(id)
-    stderror_output = "2> beehiveOutput/{}.error.out".format(id)
+    stdout_output = "> out/{}.out".format(id)
+    stderror_output = "2> out/{}.error.out".format(id)
 
     # Put all the command-line arguments together
     return " ".join([

@@ -7,7 +7,7 @@ sudo mn -c
 sudo rm -rf /tmp/*
 
 # Clean up output folder
-sudo rm -rf ./beehiveOutput
+sudo rm -rf ./out
 
 # Clean up Beehive folder
 cd ${GOPATH}/src/github.com/kandoo/beehive/

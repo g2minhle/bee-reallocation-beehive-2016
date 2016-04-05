@@ -15,7 +15,7 @@ fi
 ./cleanUp.sh
 
 # Setup output folder
-mkdir beehiveOutput
+mkdir out
 
 # Copy all Beehive changes to beehive folder
 cd ./$3
