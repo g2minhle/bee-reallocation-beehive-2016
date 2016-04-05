@@ -23,7 +23,7 @@ cp `ls` ${GOPATH}/src/github.com/kandoo/beehive/
 cd ../
 
 # Run the main script
-sudo python -E ./beehive.py $1 $2 $3
+sudo -E python ./beehive.py $1 $2 $3
 
 # Store experiment result
 sed "s/$/,$3/" experimentResult.csv >> experimentResultDB.csv

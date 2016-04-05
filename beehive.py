@@ -141,8 +141,6 @@ def run_experiment(num_hosts, application_path):
     # Start the initial end host that all peers will connect to
     command = get_run_command(h0, 0, application_path)
     print("Executing {} on host {}...".format(command, 0))
-    h0.cmd("export PATH=$PATH:/usr/local/go/bin")  
-    h0.cmd("export GOPATH=$HOME/work")  
     h0.cmd(command)
     wait_for_hive(0)
 
@@ -151,8 +149,6 @@ def run_experiment(num_hosts, application_path):
         host = net.get("h{}".format(i))
         command = get_run_command(host, i, application_path, [h0])
         print("Executing {} on host {}...".format(command, i))
-        host.cmd("export PATH=$PATH:/usr/local/go/bin")  
-        host.cmd("export GOPATH=$HOME/work")  
         host.cmd(command)
 
     # Wait for all peers to start
