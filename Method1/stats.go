@@ -305,7 +305,7 @@ func (o optimizer) Rcv(msg Msg, ctx RcvContext) error {
 
 	// Initialize an entry for each hive
 	all_hives := ctx.Hive().(*hive).registry.hives()
-	for hi := range all_hives {
+	for _, hi := range all_hives {
 		bees_per_hive[hi.ID] = 0
 	}
 
