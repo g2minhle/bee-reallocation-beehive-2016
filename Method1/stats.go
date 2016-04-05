@@ -4,6 +4,7 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"strconv"
 	"time"
@@ -349,6 +350,10 @@ func (o optimizer) Rcv(msg Msg, ctx RcvContext) error {
 	// For now, migrate a random bee to a random free hive
 	for _, hid := range full_hives {
 		bees_in_hive := ctx.Hive().(*hive).registry.beesOfHive(hid)
+
+		// Find the bee that has been receiving the fewest messages
+		min_bid := uint64(0)
+		min_bid_msgs := uint64(math.MaxUint64)
 		for _, bee := range bees_in_hive {
 			bid := bee.ID
 			bi, ok := infos[bid]
@@ -366,23 +371,46 @@ func (o optimizer) Rcv(msg Msg, ctx RcvContext) error {
 				continue
 			}
 
-			glog.Infof("%v initiates migration of bee %v to hive %v",
-				ctx, bid, free_hives[0])
-			ctx.SendToBee(cmdMigrate{Bee: bid, To: free_hives[0]}, os.Collector)
-			os.Migrated = true
-			k := formatBeeID(bid)
-			dict.Put(k, os)
+			// Count the number of messages this bee has received
+			msgs := uint64(0)
+			for frombid, count := range os.Matrix {
+				if stats[frombid].Migrated {
+					continue
+				}
 
-			// Remove this free hive from the list of free hives
-			free_hives = free_hives[1:]
+				_, ok := infos[frombid]
+				if !ok {
+					continue
+				}
 
-			// No free hives left; oh well
-			if len(free_hives) == 0 {
-				return nil
+				msgs += count
 			}
 
-			// Migration done for this hive
-			break
+			if msgs < min_bid_msgs {
+				min_bid = bid
+				min_bid_msgs = msgs
+			}
+		}
+
+		// No eligible bees found; too bad
+		if min_bid == 0 {
+			continue
+		}
+
+		os := stats[min_bid]
+		glog.Infof("%v initiates migration of bee %v to hive %v",
+			ctx, min_bid, free_hives[0])
+		ctx.SendToBee(cmdMigrate{Bee: min_bid, To: free_hives[0]}, os.Collector)
+		os.Migrated = true
+		k := formatBeeID(min_bid)
+		dict.Put(k, os)
+
+		// Remove this free hive from the list of free hives
+		free_hives = free_hives[1:]
+
+		// No free hives left; oh well
+		if len(free_hives) == 0 {
+			return nil
 		}
 	}
 
